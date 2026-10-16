@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Astra Live — Pruebas (sin subscribe)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    input[type="text"]{ width: 100%; padding: 8px; margin-bottom: 10px; }
+    button { margin-right: 8px; padding: 8px 12px; }
+    pre { background:#f3f3f3; padding:10px; min-height:80px; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Astra Live — Página de pruebas (sin subscribe)</h1>
+
+  <label>Backend (ej.: https://tu-backend.vercel.app/api)</label>
+  <input id="backendUrl" type="text" placeholder="Pega la URL base del backend aquí (incluye /api si aplica)" value="https://astra-live-backend-vercel.vercel.app/api" />
+
+  <div style="margin-bottom: 12px;">
+    <button id="registerSw">Registrar Service Worker</button>
+    <button id="requestPermission">Pedir permiso de notifs</button>
+    <button id="simulate">Simular notificación</button>
+  </div>
+
+  <h3>Estado / Logs</h3>
+  <pre id="logs">Logs aparecerán aquí...</pre>
+
+  <script>
+    const logs = document.getElementById('logs');
+    const backendInput = document.getElementById('backendUrl');
+
+    function log(...args) {
+      console.log(...args);
+      logs.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ') + '\n';
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    // Register SW
+    document.getElementById('registerSw').addEventListener('click', async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.register('/sw.js');
+          log('Service Worker registrado:', reg.scope);
+        } else {
+          log('Service Worker no soportado en este navegador.');
+        }
+      } catch (err) {
+        log('Error registrando SW:', err);
+      }
+    });
+
+    // Request Notification permission
+    document.getElementById('requestPermission').addEventListener('click', async () => {
+      try {
+        const res = await Notification.requestPermission();
+        log('Permiso de notificaciones:', res);
+      } catch (err) {
+        log('Error pidiendo permiso:', err);
+      }
+    });
+
+    // Simulate notification WITHOUT subscription
+    document.getElementById('simulate').addEventListener('click', async () => {
+      const base = (backendInput.value || '').replace(/\/$/, '');
+      if (!base) {
+        log('Por favor pega la URL base del backend (ej.: https://.../api)');
+        return;
+      }
+      const url = base + '/simulate';
+      log('Llamando a', url);
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const json = await resp.json().catch(() => null);
+        const txt = json ? JSON.stringify(json) : await resp.text();
+        log('Respuesta', resp.status, txt);
+      } catch (err) {
+        log('Error llamando a simulate:', err);
+      }
+    });
+
+    // Autocompletar ya puesto por defecto al cargar
+  </script>
+</body>
+</html>
